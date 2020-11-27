@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../")))
 
 
 import time
@@ -12,19 +11,23 @@ import numpy as np
 import requests
 import torch
 
-from fedml_api.distributed.fedavg.FedAVGTrainer import FedAVGTrainer
-from fedml_api.distributed.fedavg.FedAvgClientManager import FedAVGClientManager
 
-from fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
-from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10
-from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
-from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
-from fedml_api.data_preprocessing.shakespeare.data_loader import load_partition_data_shakespeare
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../")))
 
-from fedml_api.model.cv.mobilenet import mobilenet
-from fedml_api.model.cv.resnet import resnet56
-from fedml_api.model.linear.lr import LogisticRegression
-from fedml_api.model.nlp.rnn import RNN_OriginalFedAvg
+from FedML.fedml_api.distributed.fedavg.FedAVGTrainer import FedAVGTrainer
+from FedML.fedml_api.distributed.fedavg.FedAvgClientManager import FedAVGClientManager
+
+from FedML.fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
+from FedML.fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10
+from FedML.fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
+from FedML.fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
+from FedML.fedml_api.data_preprocessing.shakespeare.data_loader import load_partition_data_shakespeare
+
+from FedML.fedml_api.model.cv.mobilenet import mobilenet
+from FedML.fedml_api.model.cv.resnet import resnet56
+from FedML.fedml_api.model.linear.lr import LogisticRegression
+from FedML.fedml_api.model.nlp.rnn import RNN_OriginalFedAvg
 
 def add_args(parser):
     parser.add_argument('--client_uuid', type=str, default="0",
@@ -89,7 +92,9 @@ def load_data(args, dataset_name):
         logging.info("load_data. dataset_name = %s" % dataset_name)
         client_num, train_data_num, test_data_num, train_data_global, test_data_global, \
         train_data_local_num_dict, train_data_local_dict, test_data_local_dict, \
-        class_num = load_partition_data_mnist(args.batch_size)
+        class_num = load_partition_data_mnist(args.batch_size,
+                                              train_path="./../FedML/data/MNIST/train",
+                                              test_path="./../FedML/data/MNIST/test")
         """
         For shallow NN or linear models, 
         we uniformly sample a fraction of clients each round (as the original FedAvg paper)
