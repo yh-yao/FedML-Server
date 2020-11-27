@@ -7,25 +7,24 @@ import numpy as np
 import torch
 import wandb
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../")))
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../../")))
+from FedML.fedml_api.distributed.fedavg.FedAVGAggregator import FedAVGAggregator
+from FedML.fedml_api.distributed.fedavg.FedAvgServerManager import FedAVGServerManager
 
-from fedml_api.distributed.fedavg.FedAVGAggregator import FedAVGAggregator
-from fedml_api.distributed.fedavg.FedAvgServerManager import FedAVGServerManager
-from fedml_mobile.server.executor.log import __log
+from FedML.fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
+from FedML.fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10
+from FedML.fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
+from FedML.fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
+from FedML.fedml_api.data_preprocessing.shakespeare.data_loader import load_partition_data_shakespeare
 
-from fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
-from fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10
-from fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
-from fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
-from fedml_api.data_preprocessing.shakespeare.data_loader import load_partition_data_shakespeare
+from FedML.fedml_api.model.cv.mobilenet import mobilenet
+from FedML.fedml_api.model.cv.resnet import resnet56
+from FedML.fedml_api.model.linear.lr import LogisticRegression
+from FedML.fedml_api.model.nlp.rnn import RNN_OriginalFedAvg
 
-from fedml_api.model.cv.mobilenet import mobilenet
-from fedml_api.model.cv.resnet import resnet56
-from fedml_api.model.linear.lr import LogisticRegression
-from fedml_api.model.nlp.rnn import RNN_OriginalFedAvg
-
-from fedml_core.distributed.communication.observer import Observer
+from FedML.fedml_core.distributed.communication.observer import Observer
 
 from flask import Flask, request, jsonify
 
@@ -189,8 +188,7 @@ if __name__ == '__main__':
     # MQTT client connection
     class Obs(Observer):
         def receive_message(self, msg_type, msg_params) -> None:
-            global __log
-            __log.info("receive_message(%s,%s)" % (msg_type, msg_params))
+            print("receive_message(%s,%s)" % (msg_type, msg_params))
 
 
     logging.info(args)
