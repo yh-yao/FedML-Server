@@ -1,12 +1,9 @@
+import argparse
 import logging
 import os
 import sys
-
-
-
 import time
 
-import argparse
 import numpy as np
 import requests
 import torch
@@ -16,6 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../")))
 
 from FedML.fedml_api.distributed.fedavg.FedAVGTrainer import FedAVGTrainer
+from FedML.fedml_api.distributed.fedavg.MyModelTrainer import MyModelTrainer
 from FedML.fedml_api.distributed.fedavg.FedAvgClientManager import FedAVGClientManager
 
 from FedML.fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
@@ -28,6 +26,7 @@ from FedML.fedml_api.model.cv.mobilenet import mobilenet
 from FedML.fedml_api.model.cv.resnet import resnet56
 from FedML.fedml_api.model.linear.lr import LogisticRegression
 from FedML.fedml_api.model.nlp.rnn import RNN_OriginalFedAvg
+
 
 def add_args(parser):
     parser.add_argument('--client_uuid', type=str, default="0",
@@ -165,7 +164,7 @@ if __name__ == '__main__':
     torch.manual_seed(10)
 
     logging.info("client_ID = %d, size = %d" % (client_ID, args.client_num_per_round))
-    device = init_training_device(client_ID-1, args.client_num_per_round - 1, 4)
+    device = init_training_device(client_ID - 1, args.client_num_per_round - 1, 4)
 
     # load data
     dataset = load_data(args, args.dataset)
@@ -178,10 +177,14 @@ if __name__ == '__main__':
     model = create_model(args, model_name=args.model, output_dim=dataset[7])
 
     client_index = client_ID - 1
-    trainer = FedAVGTrainer(client_index, train_data_local_dict, train_data_local_num_dict, train_data_num, device, model, args)
+
+    model_trainer = MyModelTrainer(model)
+    model_trainer.set_id(client_index)
+    trainer = FedAVGTrainer(client_index, train_data_local_dict, train_data_local_num_dict, train_data_num, device,
+                            model, args, model_trainer=model_trainer)
 
     size = args.client_num_per_round + 1
-    client_manager = FedAVGClientManager(args, trainer, rank=client_ID, size=size,  backend="MQTT")
+    client_manager = FedAVGClientManager(args, trainer, rank=client_ID, size=size, backend="MQTT")
     client_manager.run()
     client_manager.start_training()
 
