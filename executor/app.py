@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../")))
 
 from FedML.fedml_api.distributed.fedavg.FedAVGAggregator import FedAVGAggregator
 from FedML.fedml_api.distributed.fedavg.FedAvgServerManager import FedAVGServerManager
+from FedML.fedml_api.distributed.fedavg.MyModelTrainer import MyModelTrainer
 
 from FedML.fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
 from FedML.fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10
@@ -26,7 +27,7 @@ from FedML.fedml_api.model.nlp.rnn import RNN_OriginalFedAvg
 
 from FedML.fedml_core.distributed.communication.observer import Observer
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, abort
 
 
 def add_args(parser):
@@ -53,7 +54,7 @@ def add_args(parser):
     parser.add_argument('--client_num_in_total', type=int, default=1000, metavar='NN',
                         help='number of workers in a distributed cluster')
 
-    parser.add_argument('--client_num_per_round', type=int, default=2, metavar='NN',
+    parser.add_argument('--client_num_per_round', type=int, default=4, metavar='NN',
                         help='number of workers')
 
     parser.add_argument('--batch_size', type=int, default=10, metavar='N',
@@ -84,18 +85,40 @@ def add_args(parser):
 
     parser.add_argument('--gpu_num_per_server', type=int, default=4,
                         help='gpu_num_per_server')
+
+    parser.add_argument('--ci', type=int, default=0,
+                        help='continuous integration')
     args = parser.parse_args()
     return args
 
 
 # HTTP server
 app = Flask(__name__)
+app.config['MOBILE_PREPROCESSED_DATASETS'] = './preprocessed_dataset/'
 
 # parse python script input parameters
 parser = argparse.ArgumentParser()
 args = add_args(parser)
 
 device_id_to_client_id_dict = dict()
+
+
+@app.route('/', methods=['GET'])
+def index():
+    return 'backend service for Fed_mobile'
+
+
+@app.route('/get-preprocessed-data/<dataset_name>', methods = ['GET'])
+def get_preprocessed_data(dataset_name):
+    directory = app.config['MOBILE_PREPROCESSED_DATASETS'] + args.dataset.upper() + '_mobile_zip/'
+    try:
+        return send_from_directory(
+            directory,
+            filename=dataset_name + '.zip',
+            as_attachment=True)
+
+    except FileNotFoundError:
+        abort(404)
 
 
 @app.route('/api/register', methods=['POST'])
@@ -122,7 +145,11 @@ def register_device():
                           "wd": args.wd,
                           "batch_size": args.batch_size,
                           "frequency_of_the_test": args.frequency_of_the_test,
-                          "is_mobile": args.is_mobile}
+                          "is_mobile": args.is_mobile,
+                          'dataset_url': '{}/get-preprocessed-data/{}'.format(
+                              request.url_root,
+                              client_id-1
+                          )}
 
     return jsonify({"errno": 0,
                     "executorId": "executorId",
@@ -192,6 +219,9 @@ if __name__ == '__main__':
         def receive_message(self, msg_type, msg_params) -> None:
             print("receive_message(%s,%s)" % (msg_type, msg_params))
 
+    # quick fix for issue in MacOS environment: https://github.com/openai/spinningup/issues/16
+    if sys.platform == 'darwin':
+        os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
     logging.info(args)
 
@@ -222,12 +252,14 @@ if __name__ == '__main__':
     # Note if the model is DNN (e.g., ResNet), the training will be very slow.
     # In this case, please use our FedML distributed version (./fedml_experiments/distributed_fedavg)
     model = create_model(args, model_name=args.model, output_dim=dataset[7])
+    model_trainer = MyModelTrainer(model)
 
     aggregator = FedAVGAggregator(train_data_global, test_data_global, train_data_num,
                                   train_data_local_dict, test_data_local_dict, train_data_local_num_dict,
-                                  args.client_num_per_round, device, model, args)
+                                  args.client_num_per_round, device, args, model_trainer)
     size = args.client_num_per_round + 1
-    server_manager = FedAVGServerManager(args, aggregator, rank=0, size=size, backend="MQTT")
+    server_manager = FedAVGServerManager(args, aggregator, rank=0, size=size, backend="MQTT", is_preprocessed=True)
     server_manager.run()
 
-    app.run(host='127.0.0.1', port=5000, debug=False)
+    # if run in debug mode, process will be single threaded by default
+    app.run(host='127.0.0.1', port=5000)

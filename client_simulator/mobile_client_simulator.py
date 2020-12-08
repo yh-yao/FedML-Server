@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-
+import zipfile
 
 
 import time
@@ -17,8 +17,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), "../../")))
 
 from FedML.fedml_api.distributed.fedavg.FedAVGTrainer import FedAVGTrainer
 from FedML.fedml_api.distributed.fedavg.FedAvgClientManager import FedAVGClientManager
+from FedML.fedml_api.distributed.fedavg.MyModelTrainer import MyModelTrainer
 
-from FedML.fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist
+from FedML.fedml_api.data_preprocessing.MNIST.data_loader import load_partition_data_mnist, load_partition_data_mnist_by_device_id
 from FedML.fedml_api.data_preprocessing.cifar10.data_loader import load_partition_data_cifar10
 from FedML.fedml_api.data_preprocessing.cifar100.data_loader import load_partition_data_cifar100
 from FedML.fedml_api.data_preprocessing.cinic10.data_loader import load_partition_data_cinic10
@@ -28,6 +29,7 @@ from FedML.fedml_api.model.cv.mobilenet import mobilenet
 from FedML.fedml_api.model.cv.resnet import resnet56
 from FedML.fedml_api.model.linear.lr import LogisticRegression
 from FedML.fedml_api.model.nlp.rnn import RNN_OriginalFedAvg
+
 
 def add_args(parser):
     parser.add_argument('--client_uuid', type=str, default="0",
@@ -66,6 +68,7 @@ def register(uuid):
             self.batch_size = training_task_args['batch_size']
             self.frequency_of_the_test = training_task_args['frequency_of_the_test']
             self.is_mobile = training_task_args['is_mobile']
+            self.dataset_url = training_task_args['dataset_url']
 
     args = Args()
     return client_ID, args
@@ -86,6 +89,24 @@ def init_training_device(process_ID, fl_worker_num, gpu_num_per_machine):
     logging.info(device)
     return device
 
+
+def load_data_by_device(args, dataset_name, device_id):
+    if dataset_name == 'mnist':
+        logging.info("load_data. dataset_name = %s. device_id = %s" % (dataset_name, device_id))
+        client_num, train_data_num, test_data_num, train_data_global, test_data_global, \
+        train_data_local_num_dict, train_data_local_dict, test_data_local_dict, \
+        class_num = load_partition_data_mnist_by_device_id(args.batch_size,
+                                                           device_id,
+                                              train_path="MNIST_mobile",
+                                              test_path="MNIST_mobile")
+    elif dataset_name == 'shakespeare':
+        pass
+    else:
+        pass
+
+    dataset = [train_data_num, test_data_num, train_data_global, test_data_global,
+               train_data_local_num_dict, train_data_local_dict, test_data_local_dict, class_num]
+    return dataset
 
 def load_data(args, dataset_name):
     if dataset_name == "mnist":
@@ -142,11 +163,40 @@ def create_model(args, model_name, output_dim):
     return model
 
 
+def download_and_unzip(url):
+    # create dataset folder and change directory
+    dataset_folder = args.dataset.upper() + '_mobile'
+    if dataset_folder not in os.listdir():
+        os.system('mkdir {}'.format(dataset_folder))
+    os.chdir(dataset_folder)
+    logging.info('saving into ' + os.getcwd())
+
+    # download
+    r = requests.get(url)
+    device_id = url.split('/')[-1]
+    zip_name = device_id + '.zip'
+    with open(zip_name, 'wb') as f:
+        f.write(r.content)
+
+    # unzip
+    with zipfile.ZipFile(zip_name, 'r') as zip_ref:
+        zip_ref.extractall()
+
+    # remove zip file
+    os.remove(zip_name)
+
+    # move to upper directory
+    os.chdir('../')
+
 """
 python mobile_client_simulator.py --client_uuid '0'
 python mobile_client_simulator.py --client_uuid '1'
 """
 if __name__ == '__main__':
+    if sys.platform == 'darwin':
+        # quick fix for issue : https://github.com/openai/spinningup/issues/16
+        os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
     # parse python script input parameters
     parser = argparse.ArgumentParser()
     main_args = add_args(parser)
@@ -167,18 +217,29 @@ if __name__ == '__main__':
     logging.info("client_ID = %d, size = %d" % (client_ID, args.client_num_per_round))
     device = init_training_device(client_ID-1, args.client_num_per_round - 1, 4)
 
-    # load data
-    dataset = load_data(args, args.dataset)
+    # download and unzip data from server
+    download_and_unzip(args.dataset_url)
+
+    # load device-specific data
+    device_id = str(client_ID - 1)
+    dataset = load_data_by_device(args, args.dataset, device_id)
     [train_data_num, test_data_num, train_data_global, test_data_global,
      train_data_local_num_dict, train_data_local_dict, test_data_local_dict, class_num] = dataset
+
+    # load data
+    # dataset = load_data(args, args.dataset)
+    # [train_data_num, test_data_num, train_data_global, test_data_global,
+    #  train_data_local_num_dict, train_data_local_dict, test_data_local_dict, class_num] = dataset
 
     # create model.
     # Note if the model is DNN (e.g., ResNet), the training will be very slow.
     # In this case, please use our FedML distributed version (./fedml_experiments/distributed_fedavg)
     model = create_model(args, model_name=args.model, output_dim=dataset[7])
 
-    client_index = client_ID - 1
-    trainer = FedAVGTrainer(client_index, train_data_local_dict, train_data_local_num_dict, train_data_num, device, model, args)
+    client_index = 0
+    model_trainer = MyModelTrainer(model)
+
+    trainer = FedAVGTrainer(client_index, train_data_local_dict, train_data_local_num_dict, train_data_num, device, args, model_trainer)
 
     size = args.client_num_per_round + 1
     client_manager = FedAVGClientManager(args, trainer, rank=client_ID, size=size,  backend="MQTT")
@@ -186,3 +247,5 @@ if __name__ == '__main__':
     client_manager.start_training()
 
     time.sleep(100000)
+
+    os.environ['KMP_DUPLICATE_LIB_OK'] = 'False'
