@@ -15,3 +15,15 @@ Set the server IP and port and then run the following script:
 ```
 python app.py
 ```
+
+# Preprocess Dataset
+```
+cd executor
+sh server_start.sh
+```
+
+# Launch the mobile device simulator
+```
+cd client_simulator
+python3 ./client_simulator/mobile_client_simulator.py --client_uuid '0'
+```

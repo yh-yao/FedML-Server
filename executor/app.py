@@ -88,6 +88,9 @@ def add_args(parser):
 
     parser.add_argument('--ci', type=int, default=0,
                         help='continuous integration')
+
+    parser.add_argument('--is_preprocessed', type=bool, default=True, help='True if data has been preprocessed')
+
     args = parser.parse_args()
     return args
 
@@ -149,7 +152,8 @@ def register_device():
                           'dataset_url': '{}/get-preprocessed-data/{}'.format(
                               request.url_root,
                               client_id-1
-                          )}
+                          ),
+                          'is_preprocessed': args.is_preprocessed}
 
     return jsonify({"errno": 0,
                     "executorId": "executorId",
@@ -258,7 +262,12 @@ if __name__ == '__main__':
                                   train_data_local_dict, test_data_local_dict, train_data_local_num_dict,
                                   args.client_num_per_round, device, args, model_trainer)
     size = args.client_num_per_round + 1
-    server_manager = FedAVGServerManager(args, aggregator, rank=0, size=size, backend="MQTT", is_preprocessed=True)
+    server_manager = FedAVGServerManager(args,
+                                         aggregator,
+                                         rank=0,
+                                         size=size,
+                                         backend="MQTT",
+                                         is_preprocessed=args.is_preprocessed)
     server_manager.run()
 
     # if run in debug mode, process will be single threaded by default
