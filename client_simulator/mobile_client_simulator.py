@@ -41,7 +41,7 @@ def add_args(parser):
 
 def register(uuid):
     str_device_UUID = uuid
-    URL = "http://192.168.1.147:5000/api/register"
+    URL = "http://127.0.0.1:5000/api/register"
 
     # defining a params dict for the parameters to be sent to the API
     PARAMS = {'device_id': str_device_UUID}
@@ -245,7 +245,7 @@ if __name__ == '__main__':
                             train_data_num, device, args, model_trainer)
 
     size = args.client_num_per_round + 1
-    client_manager = FedAVGClientManager(args, trainer, rank=client_ID, size=size, backend="MQTT")
+    client_manager = FedAVGClientManager(args, trainer, rank=client_ID, size=size, backend="gRPC")
     client_manager.run()
     client_manager.start_training()
 
