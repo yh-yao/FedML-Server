@@ -71,6 +71,7 @@ def register(uuid):
             self.is_mobile = training_task_args['is_mobile']
             self.dataset_url = training_task_args['dataset_url']
             self.is_preprocessed = training_task_args['is_preprocessed']
+            self.grpc_ipconfig_path = training_task_args['grpc_ipconfig_path']
 
     args = Args()
     return client_ID, args
@@ -245,7 +246,7 @@ if __name__ == '__main__':
                             train_data_num, device, args, model_trainer)
 
     size = args.client_num_per_round + 1
-    client_manager = FedAVGClientManager(args, trainer, rank=client_ID, size=size, backend="gRPC")
+    client_manager = FedAVGClientManager(args, trainer, rank=client_ID, size=size, backend="GRPC")
     client_manager.run()
     client_manager.start_training()
 
