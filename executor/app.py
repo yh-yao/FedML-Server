@@ -71,7 +71,7 @@ def add_args(parser):
     parser.add_argument('--epochs', type=int, default=10, metavar='EP',
                         help='how many epochs will be trained locally')
 
-    parser.add_argument('--comm_round', type=int, default=200,
+    parser.add_argument('--comm_round', type=int, default=5,
                         help='how many round of communications we shoud use')
 
     parser.add_argument('--is_mobile', type=int, default=1,
@@ -90,6 +90,9 @@ def add_args(parser):
                         help='continuous integration')
 
     parser.add_argument('--is_preprocessed', type=bool, default=True, help='True if data has been preprocessed')
+
+    parser.add_argument('--grpc_ipconfig_path', type=str, default="../executor/grpc_ipconfig.csv",
+                        help='config table containing ipv4 address of grpc server')
 
     args = parser.parse_args()
     return args
@@ -153,7 +156,8 @@ def register_device():
                               request.url_root,
                               client_id-1
                           ),
-                          'is_preprocessed': args.is_preprocessed}
+                          'is_preprocessed': args.is_preprocessed,
+                          'grpc_ipconfig_path': args.grpc_ipconfig_path}
 
     return jsonify({"errno": 0,
                     "executorId": "executorId",
@@ -266,7 +270,7 @@ if __name__ == '__main__':
                                          aggregator,
                                          rank=0,
                                          size=size,
-                                         backend="gRPC",
+                                         backend="GRPC",
                                          is_preprocessed=args.is_preprocessed)
     server_manager.run()
 
