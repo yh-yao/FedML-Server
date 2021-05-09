@@ -41,7 +41,7 @@ def add_args(parser):
 
 def register(uuid):
     str_device_UUID = uuid
-    URL = "http://127.0.0.1:5000/api/register"
+    URL = "http://127.0.0.1:5001/api/register"
 
     # defining a params dict for the parameters to be sent to the API
     PARAMS = {'device_id': str_device_UUID}

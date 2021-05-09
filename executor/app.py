@@ -71,7 +71,7 @@ def add_args(parser):
     parser.add_argument('--epochs', type=int, default=10, metavar='EP',
                         help='how many epochs will be trained locally')
 
-    parser.add_argument('--comm_round', type=int, default=5,
+    parser.add_argument('--comm_round', type=int, default=100,
                         help='how many round of communications we shoud use')
 
     parser.add_argument('--is_mobile', type=int, default=1,
@@ -275,4 +275,4 @@ if __name__ == '__main__':
     server_manager.run()
 
     # if run in debug mode, process will be single threaded by default
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5001)
