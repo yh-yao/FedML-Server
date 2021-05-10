@@ -28,7 +28,7 @@ from FedML.fedml_api.model.nlp.rnn import RNN_OriginalFedAvg
 from FedML.fedml_core.distributed.communication.observer import Observer
 
 from flask import Flask, request, jsonify, send_from_directory, abort
-
+import time
 
 def add_args(parser):
     """
@@ -238,7 +238,7 @@ if __name__ == '__main__':
         project="fedml",
         name="mobile(mqtt)" + str(args.partition_method) + "r" + str(args.comm_round) + "-e" + str(
             args.epochs) + "-lr" + str(
-            args.lr),
+            args.lr) + "-time" + str(time.time()),
         config=args
     )
 
