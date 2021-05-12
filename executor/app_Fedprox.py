@@ -93,6 +93,9 @@ def add_args(parser):
 
     parser.add_argument('--grpc_ipconfig_path', type=str, default="../executor/grpc_ipconfig.csv",
                         help='config table containing ipv4 address of grpc server')
+    
+    parser.add_argument('--mu', type=float, default=0.01,
+                        help='for fedprox, fedml does not implement it fxxxxxxxxxxxxk')
 
     args = parser.parse_args()
     return args
@@ -157,7 +160,8 @@ def register_device():
                               client_id-1
                           ),
                           'is_preprocessed': args.is_preprocessed,
-                          'grpc_ipconfig_path': args.grpc_ipconfig_path}
+                          'grpc_ipconfig_path': args.grpc_ipconfig_path,
+                          'mu' : args.mu}
 
     return jsonify({"errno": 0,
                     "executorId": "executorId",
@@ -240,7 +244,7 @@ if __name__ == '__main__':
         project="fedml",
         name="mobile(mqtt)" + str(args.partition_method) + "r" + str(args.comm_round) + "-e" + str(
             args.epochs) + "-lr" + str(
-            args.lr) + "-time" + str(time.time()) + "-server",
+            args.lr) + "-time" + str(time.time()) + "-server fedprox",
         config=args
     )
 
