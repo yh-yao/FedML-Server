@@ -66,10 +66,10 @@ def add_args(parser):
     parser.add_argument('--lr', type=float, default=0.03, metavar='LR',
                         help='learning rate (default: 0.001)')
     
-    parser.add_argument('--server_optimizer', type=str, default='sgd',
+    parser.add_argument('--server_optimizer', type=str, default='adam',
                         help='Optimizer used on the server. This field can be the name of any subclass of the torch Opimizer class.')
 
-    parser.add_argument('--server_lr', type=float, default=0.1,
+    parser.add_argument('--server_lr', type=float, default=0.01,
                         help='server learning rate (default: 0.001)') 
     
     parser.add_argument('--clip', type=int, default=0.5,
@@ -282,7 +282,8 @@ if __name__ == '__main__':
                                          aggregator,
                                          rank=0,
                                          size=size,
-                                         backend="MQTT")
+                                         backend="MQTT",
+                                         is_preprocessed=args.is_preprocessed)
     server_manager.run()
 
     # if run in debug mode, process will be single threaded by default
