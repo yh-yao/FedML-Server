@@ -89,7 +89,11 @@ def add_args(parser):
     parser.add_argument('--ci', type=int, default=0,
                         help='continuous integration')
 
-    parser.add_argument('--is_preprocessed', type=bool, default=True, help='True if data has been preprocessed')
+    #parser.add_argument('--is_preprocessed', type=bool, default=True, help='True if data has been preprocessed')
+    
+    parser.add_argument('--is_preprocessed', dest='is_preprocessed', action='store_true')
+    parser.add_argument('--not_preprocessed', dest='is_preprocessed', action='store_false')
+    parser.set_defaults(is_preprocessed=True)
 
     parser.add_argument('--grpc_ipconfig_path', type=str, default="../executor/grpc_ipconfig.csv",
                         help='config table containing ipv4 address of grpc server')
